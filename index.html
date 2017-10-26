@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <link rel="stylesheet" href="node_modules/xterm/dist/xterm.css" />
+    <script src="node_modules/xterm/dist/xterm.js"></script>
+    <script src="node_modules/xterm/dist/addons/fit/fit.js"></script>
+    <script src="node_modules/browserfs/dist/browserfs.js"></script>
+    <style>
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #terminal { height: calc(100% - 20px); padding: 10px; background-color: black; }
+    </style>
+  </head>
+  <body>
+    <div id="terminal"></div>
+    <script src="js/shell.js" type="module"></script>
+    <script src="js/shell/builtins.js" type="module"></script>
+    <script src="js/fs.js" type="module"></script>
+    <script src="termy.js" type="module"></script>
+  </body>
+</html>
