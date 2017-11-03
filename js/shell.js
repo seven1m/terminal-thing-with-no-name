@@ -12,16 +12,15 @@ const KEYS = {
 }
 
 class Shell {
-  constructor(domId, prompt) {
-    this.term = new Terminal()
-    this.domId = domId
+  constructor(session, prompt) {
+    this.session = session
+    this.term = session.term
     this.prompt = prompt
     this.line = ''
     this.position = 0
     this.listeners = {}
     this.lastStatus = 0
-    this.cwd = '/'
-    this.builtins = new ShellBuiltins(this.term, this)
+    this.builtins = new ShellBuiltins(this)
   }
 
   execute(line, callback) {
@@ -34,16 +33,14 @@ class Shell {
     })
   }
 
-  start() {
-    this.term.open(document.getElementById(this.domId), true);
-    this.term.fit()
-    this.term.write(this.prompt(this.cwd), false)
+  main() {
+    this.term.write(this.prompt(), false)
     this.term.on('key', (key, ev) => {
       switch (ev.keyCode) {
         case KEYS.enter:
           this.term.write('\r\n')
           this.execute(this.line, () => {
-            this.term.write(this.prompt(this.cwd))
+            this.term.write(this.prompt())
             this.position = 0
             this.line = ''
           })
@@ -90,6 +87,10 @@ class Shell {
           this.position++
       }
     })
+  }
+
+  run(program) {
+
   }
 }
 

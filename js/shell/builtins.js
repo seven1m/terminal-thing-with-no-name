@@ -1,9 +1,10 @@
 import FS from '../fs.js'
 
 class ShellBuiltins {
-  constructor(term, shell) {
-    this.term = term
+  constructor(shell) {
     this.shell = shell
+    this.term = shell.term
+    this.session = shell.session
   }
 
   call(command, args, status) {
@@ -28,13 +29,13 @@ class ShellBuiltins {
 
   cd(args, status) {
     const path = args[0]
-    const newCwd = expandPath(this.shell.cwd, path)
+    const newCwd = expandPath(this.session.cwd, path)
     FS.stat(newCwd, (err) => {
       if (err) {
         this.term.writeln(`cd: ${newCwd}: ${err}`)
         status(1)
       } else {
-        this.shell.cwd = newCwd
+        this.session.cwd = newCwd
         status(0)
       }
     })
@@ -56,7 +57,7 @@ class ShellBuiltins {
   }
 
   ls(args, status) {
-    const path = expandPath(this.shell.cwd, args[0] || '.')
+    const path = expandPath(this.session.cwd, args[0] || '.')
     FS.readdir(path, (err, files) => {
       if (err) {
         this.term.writeln(`ls: ${path}: ${err}`)
@@ -71,7 +72,7 @@ class ShellBuiltins {
   }
 
   mkdir(args, status) {
-    const path = expandPath(this.shell.cwd, args[0] || '.')
+    const path = expandPath(this.session.cwd, args[0] || '.')
     FS.mkdir(path, (err) => {
       if (err) {
         this.term.writeln(`mkdir: ${path}: ${err}`)
@@ -83,12 +84,12 @@ class ShellBuiltins {
   }
 
   pwd(_args, status) {
-    this.term.writeln(this.shell.cwd)
+    this.term.writeln(this.session.cwd)
     status(0)
   }
 
   rm(args, status) {
-    const path = expandPath(this.shell.cwd, args[0] || '.')
+    const path = expandPath(this.session.cwd, args[0] || '.')
     FS.unlink(path, (err) => {
       if (err) {
         this.term.writeln(`rm: ${path}: ${err}`)
@@ -100,7 +101,7 @@ class ShellBuiltins {
   }
 
   rmdir(args, status) {
-    const path = expandPath(this.shell.cwd, args[0] || '.')
+    const path = expandPath(this.session.cwd, args[0] || '.')
     FS.rmdir(path, (err) => {
       if (err) {
         this.term.writeln(`rmdir: ${path}: ${err}`)
@@ -112,7 +113,7 @@ class ShellBuiltins {
   }
 
   touch(args, status) {
-    const path = expandPath(this.shell.cwd, args[0] || '.')
+    const path = expandPath(this.session.cwd, args[0] || '.')
     FS.writeFile(path, '', (err) => {
       if (err) {
         this.term.writeln(`touch: ${path}: ${err}`)
