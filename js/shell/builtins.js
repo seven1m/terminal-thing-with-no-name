@@ -10,11 +10,20 @@ class Program {
 
 export class cat extends Program {
   main(status) {
-    this.args.forEach((arg) => {
-      const path = expandPath(this.session.cwd, arg)
-      this.stdout.writeln(this.session.fs.readFileSync(path))
-      status(0)
-    })
+    if (this.args.length > 0) {
+      this.args.forEach((arg) => {
+        const path = expandPath(this.session.cwd, arg)
+        this.stdout.writeln(this.session.fs.readFileSync(path))
+        status(0)
+      })
+    } else {
+      this.stdin.bind((data) => {
+        this.stdout.write(data)
+      })
+      this.stdin.onClosed(() => {
+        status(0)
+      })
+    }
   }
 }
 

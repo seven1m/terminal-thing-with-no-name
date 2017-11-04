@@ -1,4 +1,4 @@
-import * as Builtins from './shell/builtins.js'
+import Pipeline from './shell/pipeline.js'
 import Process from './process.js'
 import Stream from './stream.js'
 
@@ -110,33 +110,6 @@ class Shell {
           for (let i = 0; i < rest.length; i++) this.term.write('\b')
         }
         this.position++
-    }
-  }
-}
-
-class Pipeline {
-  constructor(parts, session, stdin, stdout, stderr) {
-    this.parts = parts
-    this.session = session
-    this.stdin = stdin
-    this.stdout = stdout
-    this.stderr = stderr
-  }
-
-  start(status) {
-    if (this.parts.length === 1) {
-      const args = this.parts[0]
-      const command = args.shift()
-      const program = Builtins[command]
-      if (program) {
-        const process = new Process(program, args, this.session, this.stdin, this.stdout, this.stderr)
-        process.start(status)
-      } else {
-        this.stderr.writeln(`command not found: ${command}`)
-        status(127)
-      }
-    } else {
-      throw 'TODO'
     }
   }
 }
