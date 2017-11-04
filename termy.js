@@ -1,9 +1,11 @@
 import Shell from './js/shell.js'
+import FS from './js/fs.js'
 
 class Session {
   constructor() {
     this.term = new Terminal()
     this.cwd = '/'
+    this.fs = FS
   }
 
   start() {
@@ -14,5 +16,5 @@ class Session {
   }
 }
 
-const session = new Session()
+window.session = new Session()
 session.start()

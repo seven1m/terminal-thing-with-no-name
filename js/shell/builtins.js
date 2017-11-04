@@ -1,38 +1,30 @@
-import FS from '../fs.js'
-
-class ShellBuiltins {
-  constructor(shell) {
-    this.shell = shell
-    this.term = shell.term
-    this.session = shell.session
+class Program {
+  constructor(args, session, stdin, stdout, stderr) {
+    this.args = args
+    this.session = session
+    this.stdin = stdin
+    this.stdout = stdout
+    this.stderr = stderr
   }
+}
 
-  call(command, args, status) {
-    const commands = {
-      cd: true,
-      clear: true,
-      echo: true,
-      ls: true,
-      mkdir: true,
-      pwd: true,
-      rm: true,
-      rmdir: true,
-      touch: true
-    }
-    if (commands.hasOwnProperty(command)) {
-      this[command].call(this, args, status)
-    } else {
-      this.term.writeln(`command not found: ${command}`)
-      status(127)
-    }
+export class cat extends Program {
+  main(status) {
+    this.args.forEach((arg) => {
+      const path = expandPath(this.session.cwd, arg)
+      this.stdout.writeln(this.session.fs.readFileSync(path))
+      status(0)
+    })
   }
+}
 
-  cd(args, status) {
-    const path = args[0]
+export class cd extends Program {
+  main(status) {
+    const path = this.args[0]
     const newCwd = expandPath(this.session.cwd, path)
-    FS.stat(newCwd, (err) => {
+    this.session.fs.stat(newCwd, (err) => {
       if (err) {
-        this.term.writeln(`cd: ${newCwd}: ${err}`)
+        this.stderr.writeln(`cd: ${newCwd}: ${err}`)
         status(1)
       } else {
         this.session.cwd = newCwd
@@ -40,83 +32,99 @@ class ShellBuiltins {
       }
     })
   }
+}
 
-  clear(_args, status) {
-    const height = this.term.geometry[1]
+export class clear extends Program {
+  main(status) {
+    const height = this.session.term.geometry[1]
     for (let i=0; i<height-1; i++) {
-      this.term.write('\r\n')
+      this.stdout.write('\r\n')
     }
-    this.term.write('\x1B[0;0f')
+    this.stdout.write('\x1B[0;0f')
     status(0)
   }
+}
 
-  echo(args, status) {
-    args = args.map((arg) => expandVariables(arg, this.shell))
-    this.term.writeln(args.join(' '))
+export class echo extends Program {
+  main(status) {
+    const strings = this.args.map((arg) => expandVariables(arg, this.session.shell))
+    this.stdout.writeln(strings.join(' '))
     status(0)
   }
+}
 
-  ls(args, status) {
-    const path = expandPath(this.session.cwd, args[0] || '.')
-    FS.readdir(path, (err, files) => {
+export class ls extends Program {
+  main(status) {
+    const path = expandPath(this.session.cwd, this.args[0] || '.')
+    this.session.fs.readdir(path, (err, files) => {
       if (err) {
-        this.term.writeln(`ls: ${path}: ${err}`)
+        this.stderr.writeln(`ls: ${path}: ${err}`)
         status(1)
       } else {
         files.forEach((file) => {
-          this.term.writeln(file)
+          this.stdout.writeln(file)
         })
         status(0)
       }
     })
   }
+}
 
-  mkdir(args, status) {
-    const path = expandPath(this.session.cwd, args[0] || '.')
-    FS.mkdir(path, (err) => {
+export class mkdir extends Program {
+  main(status) {
+    const path = expandPath(this.session.cwd, this.args[0] || '.')
+    this.session.fs.mkdir(path, (err) => {
       if (err) {
-        this.term.writeln(`mkdir: ${path}: ${err}`)
+        this.stderr.writeln(`mkdir: ${path}: ${err}`)
         status(1)
       } else {
         status(0)
       }
     })
   }
+}
 
-  pwd(_args, status) {
-    this.term.writeln(this.session.cwd)
+export class pwd extends Program {
+  main(status) {
+    this.stdout.writeln(this.session.cwd)
     status(0)
   }
+}
 
-  rm(args, status) {
-    const path = expandPath(this.session.cwd, args[0] || '.')
-    FS.unlink(path, (err) => {
+export class rm extends Program {
+  main(status) {
+    const path = expandPath(this.session.cwd, this.args[0] || '.')
+    this.session.fs.unlink(path, (err) => {
       if (err) {
-        this.term.writeln(`rm: ${path}: ${err}`)
+        this.stderr.writeln(`rm: ${path}: ${err}`)
         status(1)
       } else {
         status(0)
       }
     })
   }
+}
 
-  rmdir(args, status) {
-    const path = expandPath(this.session.cwd, args[0] || '.')
-    FS.rmdir(path, (err) => {
+export class rmdir extends Program {
+  main(status) {
+    const path = expandPath(this.session.cwd, this.args[0] || '.')
+    this.session.fs.rmdir(path, (err) => {
       if (err) {
-        this.term.writeln(`rmdir: ${path}: ${err}`)
+        this.stderr.writeln(`rmdir: ${path}: ${err}`)
         status(1)
       } else {
         status(0)
       }
     })
   }
+}
 
-  touch(args, status) {
-    const path = expandPath(this.session.cwd, args[0] || '.')
-    FS.writeFile(path, '', (err) => {
+export class touch extends Program {
+  main(status) {
+    const path = expandPath(this.session.cwd, this.args[0] || '.')
+    this.session.fs.writeFile(path, '', (err) => {
       if (err) {
-        this.term.writeln(`touch: ${path}: ${err}`)
+        this.stderr.writeln(`touch: ${path}: ${err}`)
         status(1)
       } else {
         status(0)
@@ -157,5 +165,3 @@ const expandPath = (cwd, path) => {
 const normalizePath = (path) => (
   ('/' + path).replace(/\/\//g, '/').replace(/([^\/])\/$/, '$1')
 )
-
-export default ShellBuiltins
