@@ -5,6 +5,10 @@
   "license": "MIT",
   "dependencies": {
     "browserfs": "^1.4.3",
+    "pegjs": "^0.10.0",
     "xterm": "^2.9.2"
+  },
+  "scripts": {
+    "gen-arg-parser": "pegjs --format commonjs -o - arg_parser.pegjs | sed 's/module.exports =/export default/' > js/shell/arg_parser.js"
   }
 }

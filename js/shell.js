@@ -1,3 +1,4 @@
+import ArgParser from './shell/arg_parser.js'
 import Pipeline from './shell/pipeline.js'
 import Process from './process.js'
 import Stream from './stream.js'
@@ -28,7 +29,7 @@ class Shell {
 
   execute(line, callback) {
     if (line.trim() === '') return callback()
-    const parts = line.trim().split(/\s*\|\s*/).map((part) => parseArgs(part))
+    const parts = line.trim().split(/\s*\|\s*/).map((part) => ArgParser.parse(part))
     new Pipeline(parts, this.session, this.stdin, this.stdout, this.stderr).start((status) => {
       this.lastStatus = status
       callback()
@@ -43,8 +44,12 @@ class Shell {
 
   setupStreams() {
     this.term.on('key', (key, ev) => this.stdin.write(key, ev))
-    this.stdout.bind(this.term.write.bind(this.term))
-    this.stderr.bind(this.term.write.bind(this.term))
+    const out = (str) => {
+      str = str.replace(/\n/g, "\r\n")
+      this.term.write.apply(this.term, [str].concat(Array.prototype.slice(arguments, 1)))
+    }
+    this.stdout.bind(out)
+    this.stderr.bind(out)
   }
 
   enableInput() {
@@ -112,30 +117,6 @@ class Shell {
         this.position++
     }
   }
-}
-
-// adapted from http://krasimirtsonev.com/blog/article/Simple-command-line-parser-in-JavaScript
-const parseArgs = (line) => {
-  const args = []
-  let readingPart = false
-  let part = ''
-  line = line.trim()
-  for (var i=0; i<line.length; i++) {
-    if (line.charAt(i) === ' ' && !readingPart) {
-      if (line.charAt(i + 1) !== ' ') {
-        args.push(part)
-        part = ''
-      }
-    } else {
-      if (line.charAt(i) === '"') {
-        readingPart = !readingPart
-      } else {
-        part += line.charAt(i)
-      }
-    }
-  }
-  args.push(part)
-  return args
 }
 
 export default Shell

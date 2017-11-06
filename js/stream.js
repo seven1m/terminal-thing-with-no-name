@@ -33,7 +33,7 @@ class Stream {
   }
 
   writeln(string) {
-    this.write(string + "\r\n")
+    this.write(string + "\n")
   }
 
   pipe(emitter) {

@@ -18,7 +18,7 @@ class Pipeline {
     let index = 0
     this.parts.forEach((part) => {
       const command = part[0]
-      const args = part.slice(1)
+      const args = part[1].map(unescape)
       const program = Builtins[command]
       const first = index == 0
       const last = index == this.parts.length - 1
@@ -44,5 +44,12 @@ class Pipeline {
     })
   }
 }
+
+const unescape = (str) => (
+  str
+    .replace(/\\n/g, "\n")
+    .replace(/\\'/g, "'")
+    .replace(/\\"/g, '"')
+)
 
 export default Pipeline
