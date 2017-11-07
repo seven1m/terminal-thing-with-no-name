@@ -15,8 +15,15 @@ export class cat extends Program {
     if (this.args.length > 0) {
       this.args.forEach((arg) => {
         const path = expandPath(this.session.cwd, arg)
-        this.stdout.writeln(this.session.fs.readFileSync(path))
-        status(0)
+        this.session.fs.readFile(path, (err, data) => {
+          if (err) {
+            this.stdout.write(err)
+            status(1)
+          } else {
+            this.stdout.writeln(data)
+            status(0)
+          }
+        })
       })
     } else {
       this.stdin.bind((data) => {
