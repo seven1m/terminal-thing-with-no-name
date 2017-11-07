@@ -25,7 +25,11 @@ class Stream {
   }
 
   write(_args) {
-    this.data.push(arguments)
+    let args = []
+    for (let i = 0; i < arguments.length; i++) {
+      args.push(arguments[i])
+    }
+    this.data.push(args)
     if (this.callback) {
       this.data.forEach((args) => this.callback.apply(null, args))
       this.data.length = 0
@@ -38,6 +42,12 @@ class Stream {
 
   pipe(emitter) {
     this.callback = emitter.emit
+  }
+
+  get dataAsString() {
+    let parts = []
+    this.data.forEach((part) => parts.push(part[0]))
+    return parts.join('\n')
   }
 }
 

@@ -1,3 +1,5 @@
+import Stream from '../stream.js'
+
 class Program {
   constructor(args, session, stdin, stdout, stderr) {
     this.args = args
@@ -128,6 +130,44 @@ export class rmdir extends Program {
   }
 }
 
+export class sort extends Program {
+  main(status) {
+    let lines = []
+    if (this.args.length > 0) {
+      this.args.forEach((arg) => {
+        const path = expandPath(this.session.cwd, arg)
+        this.session.fs.readFileSync(path).split(/\n/).forEach((line) => lines.push(line))
+      })
+      this.stdout.writeln(lines.sort().join('\n'))
+      status(0)
+    } else {
+      let currentLine = ''
+      this.stdin.bind((data) => {
+        currentLine = currentLine + data
+        if (currentLine.match(/\n/)) {
+          const parts = currentLine.split(/\n/)
+          currentLine = parts.pop()
+          lines = lines.concat(parts)
+        }
+      })
+      this.stdin.onClosed(() => {
+        if (currentLine) lines.push(currentLine)
+        this.stdout.writeln(lines.sort().join('\n'))
+        status(0)
+      })
+    }
+  }
+
+  static test() {
+    assertStdout(sort, [], 'a\nb\nz\n', (stdin) => {
+      stdin.writeln('b')
+      stdin.writeln('z')
+      stdin.writeln('a')
+      stdin.close()
+    })
+  }
+}
+
 export class touch extends Program {
   main(status) {
     const path = expandPath(this.session.cwd, this.args[0] || '.')
@@ -174,3 +214,22 @@ const expandPath = (cwd, path) => {
 const normalizePath = (path) => (
   ('/' + path).replace(/\/\//g, '/').replace(/([^\/])\/$/, '$1')
 )
+
+const assertEq = (expected, actual, testName) => {
+  console.assert(expected === actual, testName, JSON.stringify(expected), '!==', JSON.stringify(actual))
+}
+
+const assertStdout = (programClass, args, expected, writer) => {
+  const session = {}
+  const stdin = new Stream()
+  const stdout = new Stream()
+  const stderr = new Stream()
+  const program = new programClass(args, session, stdin, stdout, stderr)
+  program.main((status) => {
+    if (status !== 0) throw status
+    assertEq(expected, stdout.dataAsString)
+  })
+  writer(stdin)
+}
+
+sort.test()
