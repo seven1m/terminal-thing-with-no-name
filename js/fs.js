@@ -1,14 +1,12 @@
-const bfs = {}
-BrowserFS.install(bfs)
-BrowserFS.configure({
-  fs: 'MountableFileSystem',
-  options: {
-    '/': {
-      fs: 'LocalStorage'
-    }
-  }
-}, (e) => {
-  if (e) throw e
+export let MFS
+
+BrowserFS.FileSystem.LocalStorage.Create((e, ls) => {
+  BrowserFS.FileSystem.MountableFileSystem.Create({
+    '/': ls
+  }, (e, mfs) => {
+    MFS = mfs
+    BrowserFS.initialize(mfs)
+  })
 })
 
-export default bfs.require('fs')
+export const FS = BrowserFS.BFSRequire('fs')
