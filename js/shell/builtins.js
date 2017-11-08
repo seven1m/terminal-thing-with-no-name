@@ -17,7 +17,7 @@ export class cat extends Program {
         const path = expandPath(this.session.cwd, arg)
         this.session.fs.readFile(path, (err, data) => {
           if (err) {
-            this.stdout.write(err)
+            this.stderr.writeln(`cat: ${path}: ${err}`)
             status(1)
           } else {
             this.stdout.writeln(data)
