@@ -74,7 +74,7 @@ class Shell {
           this.position = 0
           this.line = ''
         })
-        break;
+        break
       case KEYS.backspace:
         if (this.line.length > 0) {
           if (this.position > 0 && this.term.buffer.x === 0) {
@@ -86,23 +86,35 @@ class Shell {
           this.line = this.line.substring(0, this.line.length - 1)
           this.position--
         }
-        break;
+        break
       case KEYS.tab:
+        const words = this.line.split(/\s+/)
+        const word = words[words.length - 1]
+        this.session.fs.readdir(this.session.cwd, (err, files) => {
+          const matching = files.filter((f) => f.indexOf(word) === 0)
+          if (matching.length > 0) {
+            const rest = matching[0].substring(word.length)
+            this.line = this.line + rest
+            this.position += rest.length
+            this.term.write(rest)
+          }
+        })
+        break
       case KEYS.up:
       case KEYS.down:
-        break;
+        break
       case KEYS.left:
         if (this.position > 0) {
           this.position--
           this.term.write('\b')
         }
-        break;
+        break
       case KEYS.right:
         if (this.position < this.line.length) {
           this.position++
           this.term.write('\x1B[1C')
         }
-        break;
+        break
       default:
         if(this.position === this.line.length) {
           this.line = this.line + key
