@@ -4,8 +4,18 @@ import FS from './js/fs.js'
 class Session {
   constructor() {
     this.term = new Terminal()
-    this.cwd = '/'
+    this.env = {
+      PWD: '/'
+    }
     this.fs = FS
+  }
+
+  get cwd() {
+    return this.env['PWD']
+  }
+
+  set cwd(dir) {
+    this.env['PWD'] = dir
   }
 
   start() {
