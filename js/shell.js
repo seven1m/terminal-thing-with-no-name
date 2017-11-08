@@ -36,6 +36,14 @@ class Shell {
     })
   }
 
+  executeLine(line) {
+    this.execute(line, () => {
+      this.term.write(this.prompt())
+      this.position = 0
+      this.line = ''
+    })
+  }
+
   main() {
     this.setupStreams()
     this.term.write(this.prompt(), false)
@@ -69,11 +77,7 @@ class Shell {
     switch (ev.keyCode) {
       case KEYS.enter:
         this.term.write('\r\n')
-        this.execute(this.line, () => {
-          this.term.write(this.prompt())
-          this.position = 0
-          this.line = ''
-        })
+        this.executeLine(this.line)
         break
       case KEYS.backspace:
         if (this.line.length > 0) {
