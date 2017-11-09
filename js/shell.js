@@ -20,6 +20,7 @@ class Shell {
     this.term = session.term
     this.prompt = prompt
     this.line = ''
+    this.history = []
     this.position = 0
     this.listeners = {}
     this.lastStatus = 0
@@ -47,6 +48,8 @@ class Shell {
   }
 
   executeLine(line) {
+    this.history.unshift(line)
+    this.history = [...new Set(this.history)]
     this.execute(line, () => {
       this.term.write(this.prompt())
       this.position = 0
@@ -82,24 +85,37 @@ class Shell {
     this.inputEnabled = false
     this.stdin.unbind()
   }
+
+  backspace() {
+    if (this.line.length > 0) {
+      if (this.position > 0 && this.term.buffer.x === 0) {
+        const x = this.term.geometry[0]
+        const y = this.term.buffer.y // NOTE: this should be y - 1; maybe a bug in xterm.js?
+        this.term.write(`\x1B[${y};${x}f `)
+      }
+      this.term.write('\b \b')
+      this.line = this.line.substring(0, this.line.length - 1)
+      this.position--
+    }
+  }
+
+  replaceLine(line) {
+    const bs = this.position
+    for (let i = 0; i < bs; i++) { this.backspace() }
+    this.line = line
+    this.term.write(line)
+    this.position = line.length
+  }
   
   handleKey(key, ev) {
     switch (ev.keyCode) {
       case KEYS.enter:
+        delete this.historyPosition
         this.term.write('\r\n')
         this.executeLine(this.line)
         break
       case KEYS.backspace:
-        if (this.line.length > 0) {
-          if (this.position > 0 && this.term.buffer.x === 0) {
-            const x = this.term.geometry[0]
-            const y = this.term.buffer.y // NOTE: this should be y - 1; maybe a bug in xterm.js?
-            this.term.write(`\x1B[${y};${x}f `)
-          }
-          this.term.write('\b \b')
-          this.line = this.line.substring(0, this.line.length - 1)
-          this.position--
-        }
+        this.backspace()
         break
       case KEYS.tab:
         const words = this.line.split(/\s+/)
@@ -127,7 +143,22 @@ class Shell {
         })
         break
       case KEYS.up:
+        if (typeof(this.historyPosition) !== 'undefined') {
+          if (this.historyPosition < this.history.length - 1) this.historyPosition++
+        } else {
+          this.historyPosition = 0
+        }
+        this.replaceLine(this.history[this.historyPosition])
+        console.log(this.historyPosition)
+        break
       case KEYS.down:
+        if (typeof(this.historyPosition) !== 'undefined') {
+          if (this.historyPosition > -1) this.historyPosition--
+        } else {
+          this.historyPosition = -1
+        }
+        this.replaceLine(this.historyPosition === -1 ? '' : this.history[this.historyPosition])
+        console.log(this.historyPosition)
         break
       case KEYS.left:
         if (this.position > 0) {
