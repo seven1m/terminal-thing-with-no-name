@@ -6,8 +6,14 @@ class Stream {
 
   bind(callback) {
     this.callback = callback
-    this.data.forEach((args) => this.callback.apply(null, args))
-    this.data.length = 0
+    this.drain()
+  }
+
+  drain() {
+    while (this.data.length > 0) {
+      const args = this.data.shift()
+      this.callback.apply(null, args)
+    }
   }
 
   unbind() {
@@ -31,8 +37,7 @@ class Stream {
     }
     this.data.push(args)
     if (this.callback) {
-      this.data.forEach((args) => this.callback.apply(null, args))
-      this.data.length = 0
+      this.drain()
     }
   }
 

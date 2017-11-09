@@ -42,6 +42,7 @@ class Shell {
     if (parts.length > 0 && parts[0]) {
       new Pipeline(parts, this.session, this.stdin, this.stdout, this.stderr).start((status) => {
         this.lastStatus = status
+        this.bindInput()
         callback()
       })
     }
@@ -60,7 +61,7 @@ class Shell {
   main() {
     this.setupStreams()
     this.term.write(this.prompt(), false)
-    this.enableInput()
+    this.bindInput()
   }
 
   setupStreams() {
@@ -73,19 +74,13 @@ class Shell {
     this.stderr.bind(out)
   }
 
-  enableInput() {
-    if (this.inputEnabled) return
-    this.inputEnabled = true
-    this.handleKeyBound = this.handleKeyBound || this.handleKey.bind(this)
-    this.stdin.bind(this.handleKeyBound)
+  bindInput() {
+    this.bindInputAlready = this.bindInputAlready || 0
+    this.bindInputAlready++
+    if (this.bindInputAlready > 10) return
+    this.stdin.bind(this.handleKey.bind(this))
   }
   
-  disableInput() {
-    if (!this.inputEnabled) return
-    this.inputEnabled = false
-    this.stdin.unbind()
-  }
-
   backspace() {
     if (this.line.length > 0) {
       if (this.position > 0 && this.term.buffer.x === 0) {
@@ -149,7 +144,6 @@ class Shell {
           this.historyPosition = 0
         }
         this.replaceLine(this.history[this.historyPosition])
-        console.log(this.historyPosition)
         break
       case KEYS.down:
         if (typeof(this.historyPosition) !== 'undefined') {
@@ -158,7 +152,6 @@ class Shell {
           this.historyPosition = -1
         }
         this.replaceLine(this.historyPosition === -1 ? '' : this.history[this.historyPosition])
-        console.log(this.historyPosition)
         break
       case KEYS.left:
         if (this.position > 0) {
