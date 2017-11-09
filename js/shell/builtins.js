@@ -49,11 +49,7 @@ export class cd extends Program {
 
 export class clear extends Program {
   main(status) {
-    const height = this.session.term.geometry[1]
-    for (let i=0; i<height-1; i++) {
-      this.stdout.write('\r\n')
-    }
-    this.stdout.write('\x1B[0;0f')
+    this.term.clear()
     status(0)
   }
 }

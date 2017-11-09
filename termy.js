@@ -22,6 +22,14 @@ class Session {
   start() {
     this.term.open(document.getElementById('terminal'), true);
     this.term.fit()
+    this.term.clear = () => {
+      // this clear is better than the built-in one
+      const height = this.term.geometry[1]
+      for (let i=0; i<height-1; i++) {
+        this.term.write('\r\n')
+      }
+      this.term.write('\x1B[0;0f')
+    }
     this.shell = new Shell(this, () => `${this.cwd}$ `)
     this.shell.main()
   }
