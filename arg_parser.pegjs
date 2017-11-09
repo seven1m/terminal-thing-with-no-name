@@ -1,8 +1,8 @@
 Expression
-  = command:Identifier args:(Arg)*
+  = command:Command args:(Arg)*
 
-Identifier
-  = [a-z]+ { return text() }
+Command
+  = [^ ]+ { return text() }
 
 Arg
   = _ arg:(DoubleQuotedArg / SingleQuotedArg / BareArg) { return arg }

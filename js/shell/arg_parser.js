@@ -141,8 +141,8 @@ function peg$parse(input, options) {
       peg$startRuleFunctions = { Expression: peg$parseExpression },
       peg$startRuleFunction  = peg$parseExpression,
 
-      peg$c0 = /^[a-z]/,
-      peg$c1 = peg$classExpectation([["a", "z"]], false, false),
+      peg$c0 = /^[^ ]/,
+      peg$c1 = peg$classExpectation([" "], true, false),
       peg$c2 = function() { return text() },
       peg$c3 = function(arg) { return arg },
       peg$c4 = /^[^ \n]/,
@@ -308,7 +308,7 @@ function peg$parse(input, options) {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
-    s1 = peg$parseIdentifier();
+    s1 = peg$parseCommand();
     if (s1 !== peg$FAILED) {
       s2 = [];
       s3 = peg$parseArg();
@@ -331,7 +331,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseIdentifier() {
+  function peg$parseCommand() {
     var s0, s1, s2;
 
     s0 = peg$currPos;

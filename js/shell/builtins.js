@@ -1,14 +1,6 @@
 import Stream from '../stream.js'
-
-class Program {
-  constructor(args, session, stdin, stdout, stderr) {
-    this.args = args
-    this.session = session
-    this.stdin = stdin
-    this.stdout = stdout
-    this.stderr = stderr
-  }
-}
+import Program from '../program.js'
+import { expandPath } from './utils.js'
 
 export class cat extends Program {
   main(status) {
@@ -40,13 +32,16 @@ export class cd extends Program {
   main(status) {
     const path = this.args[0]
     const newCwd = expandPath(this.session.cwd, path)
-    this.session.fs.stat(newCwd, (err) => {
+    this.session.fs.stat(newCwd, (err, stat) => {
       if (err) {
         this.stderr.writeln(`cd: ${newCwd}: ${err}`)
         status(1)
-      } else {
+      } else if (stat.isDirectory()) {
         this.session.cwd = newCwd
         status(0)
+      } else {
+        this.stderr.writeln(`cd: ${newCwd} is not a directory`)
+        status(1)
       }
     })
   }
@@ -200,27 +195,6 @@ const expandVariables = (string, shell) => {
     }
   })
 }
-
-const expandPath = (cwd, path) => {
-  if (path.match(/^\//)) {
-    return normalizePath(path)
-  } else {
-    path = path.replace(/\/$/, '')
-    cwd = cwd.replace(/^\//, '').split('/')
-    path.split('/').forEach((part) => {
-      if (part.match(/^\.+$/)) {
-        part.substring(1).split('').forEach(() => cwd.pop())
-      } else {
-        cwd.push(part)
-      }
-    })
-    return normalizePath(cwd.join('/'))
-  }
-}
-
-const normalizePath = (path) => (
-  ('/' + path).replace(/\/\//g, '/').replace(/([^\/])\/$/, '$1')
-)
 
 const assertEq = (expected, actual, testName) => {
   console.assert(expected === actual, testName, JSON.stringify(expected), '!==', JSON.stringify(actual))

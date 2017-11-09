@@ -1,5 +1,6 @@
 import ArgParser from './shell/arg_parser.js'
 import Pipeline from './shell/pipeline.js'
+import { expandPath, parentDirectory, fileName, pathJoin } from './shell/utils.js'
 import Process from './process.js'
 import Stream from './stream.js'
 
@@ -29,11 +30,20 @@ class Shell {
 
   execute(line, callback) {
     if (line.trim() === '') return callback()
-    const parts = line.trim().split(/\s*\|\s*/).map((part) => ArgParser.parse(part))
-    new Pipeline(parts, this.session, this.stdin, this.stdout, this.stderr).start((status) => {
-      this.lastStatus = status
-      callback()
+    const parts = line.trim().split(/\s*\|\s*/).map((part) => {
+      try {
+        return ArgParser.parse(part)
+      } catch (e) {
+        this.stderr.writeln(`Unable to parse command line: ${e}`)
+        callback()
+      }
     })
+    if (parts.length > 0 && parts[0]) {
+      new Pipeline(parts, this.session, this.stdin, this.stdout, this.stderr).start((status) => {
+        this.lastStatus = status
+        callback()
+      })
+    }
   }
 
   executeLine(line) {
@@ -94,13 +104,25 @@ class Shell {
       case KEYS.tab:
         const words = this.line.split(/\s+/)
         const word = words[words.length - 1]
-        this.session.fs.readdir(this.session.cwd, (err, files) => {
-          const matching = files.filter((f) => f.indexOf(word) === 0)
+        const path = expandPath(this.session.cwd, word)
+        const dir = parentDirectory(path)
+        const matchWord = fileName(path)
+        this.session.fs.readdir(dir, (err, files) => {
+          if (err) throw err
+          const matching = files.filter((f) => f.indexOf(matchWord) === 0)
           if (matching.length > 0) {
-            const rest = matching[0].substring(word.length)
-            this.line = this.line + rest
-            this.position += rest.length
-            this.term.write(rest)
+            const match = matching[0]
+            const path = expandPath(dir, match)
+            this.session.fs.stat(path, (err, stat) => {
+              let existing = pathJoin([dir, matchWord])
+              let rest = path.substring(existing.length)
+              if (rest.length > 0) {
+                if (stat.isDirectory()) rest = rest + '/'
+                this.line = this.line + rest
+                this.position += rest.length
+                this.term.write(rest)
+              }
+            })
           }
         })
         break
