@@ -16,12 +16,14 @@ class Vi extends Program {
     super(...args)
     this.mode = 0
     this.data = "Welcome to an editor that loosely resembles Vi!\n\nType :q to quit."
+    this.x = 1
+    this.y = 1
   }
 
   main(status) {
     //const path = this.args[0]
     this.term.clear()
-    this.term.write(this.data.replace(/\r?\n/g, '\r\n'))
+    this.stdout.write(this.data.replace(/\r?\n/g, '\r\n'))
     this.normalMode()
     this.stdin.bind(this.handleKey.bind(this))
     this.exit = status
@@ -29,9 +31,7 @@ class Vi extends Program {
 
   normalMode() {
     this.mode = 0
-    const x = 0 // TODO
-    const y = 0 // TODO
-    this.term.write(`\x1B[${x};${y}f`)
+    this.stdout.write(`\x1B[${this.y};${this.x}f`)
   }
 
   insertMode() {
@@ -42,28 +42,28 @@ class Vi extends Program {
     this.mode = 2
     const height = this.term.geometry[1]
     this.clearStatus()
-    this.term.write(`\x1B[${height};0f:`)
+    this.stdout.write(`\x1B[${height};0f:`)
     this.command = ':'
   }
 
   clearStatus() {
     const height = this.term.geometry[1]
-    this.term.write(`\x1B[${height};0f:`)
+    this.stdout.write(`\x1B[${height};0f:`)
     const width = this.term.geometry[0]
-    for (let i = 0; i < width - 1; i ++) { this.term.write(' ') }
+    for (let i = 0; i < width - 1; i ++) { this.stdout.write(' ') }
   }
 
   message(msg) {
     const height = this.term.geometry[1]
-    this.term.write(`\x1B[${height};0f:`)
-    this.term.write(msg)
+    this.stdout.write(`\x1B[${height};0f:`)
+    this.stdout.write(msg)
   }
 
   executeCommand() {
     const command = this.command.trim().replace(/^:/, '')
     switch (command) {
       case 'q':
-        this.term.writeln('')
+        this.stdout.writeln('')
         this.exit(0)
         break
       default:
@@ -78,19 +78,23 @@ class Vi extends Program {
         switch (ev.key) {
           case 'h':
           case 'ArrowLeft':
-            this.term.write('\x1b[1D')
+            this.stdout.write('\x1b[1D')
+            this.x = Math.max(0, this.x - 1)
             break
           case 'j':
           case 'ArrowDown':
-            this.term.write('\x1B[1B')
+            this.stdout.write('\x1B[1B')
+            this.y = this.y + 1
             break
           case 'k':
           case 'ArrowUp':
-            this.term.write('\x1B[1A')
+            this.stdout.write('\x1B[1A')
+            this.y = Math.max(0, this.y - 1)
             break
           case 'l':
           case 'ArrowRight':
-            this.term.write('\x1B[1C')
+            this.stdout.write('\x1B[1C')
+            this.x = this.x + 1
             break
           case ':':
             this.commandMode()
@@ -100,11 +104,11 @@ class Vi extends Program {
       case 1:
         switch (ev.keyCode) {
           case KEYS.backspace:
-            this.term.write('\b \b')
+            this.stdout.write('\b \b')
             break
           default:
             this.command = this.command + key
-            this.term.write(key)
+            this.stdout.write(key)
         }
         break
       case 2:
@@ -114,11 +118,11 @@ class Vi extends Program {
             break
           case KEYS.backspace:
             this.command = this.command.substring(0, this.command.length - 1)
-            this.term.write('\b \b')
+            this.stdout.write('\b \b')
             break
           default:
             this.command = this.command + key
-            this.term.write(key)
+            this.stdout.write(key)
         }
         break
     }
