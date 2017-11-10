@@ -31,32 +31,50 @@ class Vi extends Program {
 
   normalMode() {
     this.mode = 0
-    this.stdout.write(`\x1B[${this.y};${this.x}f`)
+    this.clearStatus()
+    this.move()
   }
 
   insertMode() {
     this.mode = 1
+    this.message('-- INSERT --')
   }
 
   commandMode() {
     this.mode = 2
     const height = this.term.geometry[1]
     this.clearStatus()
-    this.stdout.write(`\x1B[${height};0f:`)
+    this.moveY(height)
+    this.stdout.write(':')
     this.command = ':'
+  }
+
+  move(x, y) {
+    if (x) this.x = x
+    if (y) this.y = y
+    this.stdout.write(`\x1B[${this.y};${this.x}f`)
+  }
+
+  moveX(x) {
+    this.move(x)
+  }
+
+  moveY(y) {
+    this.move(null, y)
   }
 
   clearStatus() {
     const height = this.term.geometry[1]
-    this.stdout.write(`\x1B[${height};0f:`)
+    this.stdout.write(`\x1B[${height};0f`)
     const width = this.term.geometry[0]
     for (let i = 0; i < width - 1; i ++) { this.stdout.write(' ') }
   }
 
   message(msg) {
     const height = this.term.geometry[1]
-    this.stdout.write(`\x1B[${height};0f:`)
+    this.stdout.write(`\x1B[${height};0f`)
     this.stdout.write(msg)
+    this.move()
   }
 
   executeCommand() {
@@ -76,6 +94,9 @@ class Vi extends Program {
     switch (this.mode) {
       case 0:
         switch (ev.key) {
+          case '0':
+            this.moveX(1)
+            break
           case 'h':
           case 'ArrowLeft':
             this.stdout.write('\x1b[1D')
@@ -96,18 +117,24 @@ class Vi extends Program {
             this.stdout.write('\x1B[1C')
             this.x = this.x + 1
             break
+          case 'i':
+            this.insertMode()
+            break
           case ':':
             this.commandMode()
             break
         }
         break
       case 1:
-        switch (ev.keyCode) {
-          case KEYS.backspace:
+        switch (ev.key) {
+          case 'Backspace':
             this.stdout.write('\b \b')
             break
+          case 'Escape':
+            this.normalMode()
+            break
           default:
-            this.command = this.command + key
+            this.x = this.x + key.length
             this.stdout.write(key)
         }
         break
