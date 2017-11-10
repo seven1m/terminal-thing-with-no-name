@@ -94,9 +94,10 @@ class Shell {
     }
   }
 
-  replaceLine(line) {
+  replaceLine(line, prompt = false) {
     const bs = this.position
     for (let i = 0; i < bs; i++) { this.backspace() }
+    if (prompt) this.term.write(this.prompt())
     this.line = line
     this.term.write(line)
     this.position = line.length
@@ -166,17 +167,23 @@ class Shell {
         }
         break
       default:
-        if(this.position === this.line.length) {
-          this.line = this.line + key
-          this.term.write(key)
+        if (ev.ctrlKey && ev.key === 'l') {
+          this.term.clear()
+          this.position = 0
+          this.replaceLine(this.line, true)
         } else {
-          this.line = this.line.substring(0, this.position) + key + this.line.substring(this.position)
-          this.term.write(key)
-          const rest = this.line.substring(this.position + 1)
-          this.term.write(rest)
-          for (let i = 0; i < rest.length; i++) this.term.write('\b')
+          if(this.position === this.line.length) {
+            this.line = this.line + key
+            this.term.write(key)
+          } else {
+            this.line = this.line.substring(0, this.position) + key + this.line.substring(this.position)
+            this.term.write(key)
+            const rest = this.line.substring(this.position + 1)
+            this.term.write(rest)
+            for (let i = 0; i < rest.length; i++) this.term.write('\b')
+          }
+          this.position++
         }
-        this.position++
     }
   }
 }
