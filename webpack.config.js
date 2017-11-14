@@ -29,7 +29,9 @@ module.exports = {
         { from: 'node_modules/xterm/dist/xterm.js' },
         { from: 'node_modules/xterm/dist/addons/fit/fit.js',
           to: path.resolve('./public/dist/addons/fit/fit.js') },
-        { from: 'node_modules/browserfs/dist/browserfs.js' }
+        { from: 'node_modules/browserfs/dist/browserfs.js' },
+        { from: 'js/vendor/rope.js',
+          to: path.resolve('./public/dist/rope.js') }
       ])
     ]
 };
