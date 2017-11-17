@@ -185,19 +185,18 @@ class Vi extends Program {
           case 'j':
           case 'ArrowDown':
           case 'Enter':
-            lineLength = this.lineLengths[this.topLineInWindow]
             lineHeight = this.getLineHeight(this.lineNum)
-            console.log(lineHeight)
-            this.lineNum = Math.min(this.lineNum + 1, this.lineCount)
             if (this.y + lineHeight > this.height - 1) {
-              jumpCount = this.getLineHeight(this.topLineInWindow)
-              this.topLineInWindow++
-              this.firstCharInWindow = this.firstCharInWindow + lineLength + 1
+              do {
+                this.y = this.y - this.getLineHeight(this.topLineInWindow)
+                lineLength = this.lineLengths[this.topLineInWindow]
+                this.firstCharInWindow = this.firstCharInWindow + lineLength + 1
+                this.topLineInWindow++
+              } while (this.y + lineHeight > this.height - 1)
               this.redraw()
-              this.moveY(this.y - jumpCount + lineHeight)
-            } else {
-              this.moveY(this.y + lineHeight)
             }
+            this.moveY(this.y + lineHeight)
+            this.lineNum = Math.min(this.lineNum + 1, this.lineCount - 1)
             break
           case 'k':
           case 'ArrowUp':
