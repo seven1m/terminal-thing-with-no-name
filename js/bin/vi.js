@@ -185,6 +185,7 @@ class Vi extends Program {
           case 'j':
           case 'ArrowDown':
           case 'Enter':
+            if (this.lineNum == this.lineCount - 1) break;
             lineHeight = this.getLineHeight(this.lineNum)
             if (this.y + lineHeight > this.height - 1) {
               do {
@@ -200,8 +201,9 @@ class Vi extends Program {
             break
           case 'k':
           case 'ArrowUp':
+            if (this.lineNum == 0) break;
             this.lineNum = Math.max(this.lineNum - 1, 0)
-            lineHeight = this.getLineHeight(Math.max(this.lineNum - 1, 0))
+            lineHeight = this.getLineHeight(this.lineNum)
             if (this.y - lineHeight < 1) {
               this.topLineInWindow = Math.max(this.topLineInWindow - 1, 0)
               lineLength = this.lineLengths[this.topLineInWindow]
