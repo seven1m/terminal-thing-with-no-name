@@ -15,9 +15,9 @@ class Vi extends Program {
   constructor(...args) {
     super(...args)
     this.mode = 0
-    const dataString = `0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    const dataString = `0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 1
-2BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+2BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 3
 4CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 5
@@ -40,9 +40,8 @@ class Vi extends Program {
     this.lineLengths = dataString.split(/\n/).map((line) => line.length)
     this.topLineInWindow = 0
     this.lineNum = 0
+    this.colNum = 0
     this.firstCharInWindow = 0
-    this.x = 1
-    this.y = 1
   }
 
   get width() {
@@ -63,6 +62,29 @@ class Vi extends Program {
 
   get lineCount() {
     return this.lineLengths.length
+  }
+
+  get x() {
+    return (this.colNum % this.width) + 1
+  }
+
+  get y() {
+    const base = this.getVerticalDistance(this.topLineInWindow, this.lineNum) + 1
+    const lineWrap = Math.floor(this.colNum / this.width)
+    return base + lineWrap
+  }
+
+  getVerticalDistance(line1, line2) {
+    let negate = false
+    if (line1 > line2) {
+      [line1, line2] = [line2, line1]
+      negate = true
+    }
+    let distance = 0
+    for (let line = line1; line < line2; line++) {
+      distance = distance + this.getLineHeight(line)
+    }
+    return distance * (negate ? -1 : 1)
   }
 
   getLineHeight(lineNum) {
@@ -99,7 +121,6 @@ class Vi extends Program {
   main(status) {
     //const path = this.args[0]
     this.redraw()
-    this.move(1, 1)
     this.normalMode()
     this.stdin.bind(this.handleKey.bind(this))
     this.exit = status
@@ -119,27 +140,16 @@ class Vi extends Program {
   commandMode() {
     this.mode = 2
     this.clearStatus()
-    this.moveY(this.height)
     this.stdout.write(':')
     this.command = ':'
   }
 
-  move(x, y) {
-    if (x) this.x = x
-    if (y) this.y = y
+  move() {
     this.jump(this.x, this.y)
   }
 
   jump(x, y) {
     this.stdout.write(`\x1B[${y};${x}f`)
-  }
-
-  moveX(x) {
-    this.move(x)
-  }
-
-  moveY(y) {
-    this.move(null, y)
   }
 
   clearStatus() {
@@ -180,42 +190,37 @@ class Vi extends Program {
           case 'h':
           case 'ArrowLeft':
           case 'Backspace':
-            this.moveX(Math.max(0, this.x - 1))
+            this.colNum = Math.max(this.colNum - 1, 0)
+            this.move()
             break
           case 'j':
           case 'ArrowDown':
           case 'Enter':
             if (this.lineNum == this.lineCount - 1) break;
-            lineHeight = this.getLineHeight(this.lineNum)
-            if (this.y + lineHeight > this.height - 1) {
-              do {
-                this.y = this.y - this.getLineHeight(this.topLineInWindow)
-                lineLength = this.lineLengths[this.topLineInWindow]
-                this.firstCharInWindow = this.firstCharInWindow + lineLength + 1
-                this.topLineInWindow++
-              } while (this.y + lineHeight > this.height - 1)
-              this.redraw()
-            }
-            this.moveY(this.y + lineHeight)
             this.lineNum = Math.min(this.lineNum + 1, this.lineCount - 1)
+            while (this.y >= this.height) {
+              this.firstCharInWindow = this.firstCharInWindow + this.lineLengths[this.topLineInWindow] + 1
+              this.topLineInWindow++
+            } 
+            this.colNum = Math.min(this.colNum, this.currentLineLength - 1)
+            this.redraw()
             break
           case 'k':
           case 'ArrowUp':
             if (this.lineNum == 0) break;
             this.lineNum = Math.max(this.lineNum - 1, 0)
-            lineHeight = this.getLineHeight(this.lineNum)
-            if (this.y - lineHeight < 1) {
-              this.topLineInWindow = Math.max(this.topLineInWindow - 1, 0)
-              lineLength = this.lineLengths[this.topLineInWindow]
-              this.firstCharInWindow = Math.max(this.firstCharInWindow - (lineLength + 1), 0)
-              this.redraw()
-            } else {
-              this.moveY(this.y - lineHeight)
+            console.log(this.lineNum)
+            if (this.y < 1) {
+              this.topLineInWindow--
+              this.firstCharInWindow = this.firstCharInWindow - this.lineLengths[this.topLineInWindow] - 1
             }
+            this.colNum = Math.min(this.colNum, this.currentLineLength - 1)
+            this.redraw()
             break
           case 'l':
           case 'ArrowRight':
-            this.moveX(Math.min(this.x + 1, this.width))
+            this.colNum = Math.min(this.colNum + 1, this.currentLineLength - 1)
+            this.move()
             break
           case 'i':
             this.insertMode()
@@ -234,7 +239,7 @@ class Vi extends Program {
             this.normalMode()
             break
           default:
-            this.x = this.x + key.length
+            this.colNum++
             this.stdout.write(key)
         }
         break
