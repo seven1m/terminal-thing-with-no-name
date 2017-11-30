@@ -15,13 +15,10 @@ class Vi extends Program {
   constructor(...args) {
     super(...args)
     this.mode = 0
-    const dataString = `Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
-
-Why do we use it?
-
-It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).`
+    this.path = this.args[0]
+    const dataString = this.path ? this.session.fs.readFileSync(this.path).toString() : ''
     this.data = new Rope(dataString)
-    this.lineLengths = dataString.split(/\n/).map((line) => line.length)
+    this.calculateLineLengths()
     this.topLineInWindow = 0
     this.lineNum = 0
     this.colNum = 0
@@ -93,6 +90,10 @@ It is a long established fact that a reader will be distracted by the readable c
     this.colNum = this.colNum // force fix
   }
 
+  calculateLineLengths() {
+    this.lineLengths = this.data.toString().split(/\n/).map((line) => line.length)
+  }
+
   getVerticalDistance(line1, line2) {
     let negate = false
     if (line1 > line2) {
@@ -145,9 +146,10 @@ It is a long established fact that a reader will be distracted by the readable c
     this.exit = status
   }
 
-  normalMode() {
+  normalMode(clearStatus = true) {
     this.mode = 0
-    this.clearStatus()
+    this.colNum = Math.min(this.colNum, this.currentLineLength - 1)
+    if (clearStatus) this.clearStatus()
     this.move()
   }
 
@@ -183,17 +185,45 @@ It is a long established fact that a reader will be distracted by the readable c
     this.move()
   }
 
+  saveFile(path, cb) {
+    if (path) this.path = path
+    if (!this.path) return this.message('No file name')
+    const fullPath = this.absolutePath(this.path)
+    this.session.fs.writeFile(fullPath, this.data.toString(), (err) => {
+      if (err) {
+        this.message(err)
+      } else {
+        this.message(`"${fullPath}" ${this.data.length}C written`)
+      }
+      if (cb) cb(err)
+    })
+  }
+
   executeCommand() {
-    const command = this.command.trim().replace(/^:/, '')
+    const commandLine = this.command.trim().replace(/^:/, '')
+    const command = commandLine.match(/^[a-z]+/)[0]
+    const argsMatch = commandLine.match(/^[a-z]+\s+(.+)/)
+    const args = argsMatch ? argsMatch[1].split(/\s+/) : []
     switch (command) {
       case 'q':
         this.stdout.writeln('')
         this.exit(0)
         break
+      case 'w':
+        this.saveFile(args[0])
+        break
+      case 'wq':
+        this.saveFile(args[0], (err) => {
+          if (!err) {
+            this.stdout.writeln('')
+            this.exit(0)
+          }
+        })
+        break
       default:
         this.message(`unknown command: ${command}`)
-        this.normalMode()
     }
+    this.normalMode(false)
   }
 
   handleKey(key, ev) {
@@ -201,6 +231,14 @@ It is a long established fact that a reader will be distracted by the readable c
       case 0: // normal mode
         let lineHeight, lineLength, line, jumpCount, match
         switch (ev.key) {
+          case '^':
+            match = this.currentLine.match(/[^\s]/)
+            if (match) {
+              this.colNum = match.index
+            } else {
+              this.colNum = this.currentLineLength
+            }
+            break
           case '0':
             this.colNum = 0
             this.move()
@@ -258,12 +296,32 @@ It is a long established fact that a reader will be distracted by the readable c
           case 'a':
             this.insertMode()
             this.colNum++
+            this.move()
             break
           case 'A':
             this.insertMode()
             this.colNum = this.currentLineLength + 1
+            this.move()
+            break
+          case 'o':
+            this.insertMode()
+            this.data.insert(this.dataIndex + (this.currentLineLength - this.colNum), "\n")
+            this.calculateLineLengths()
+            this.colNum = 0
+            this.lineNum++
+            this.redraw()
+            this.move()
+            break
+          case 'O':
+            this.insertMode()
+            this.data.insert(this.dataIndex - this.colNum, "\n")
+            this.calculateLineLengths()
+            this.colNum = 0
+            this.redraw()
+            this.move()
             break
           case 'w':
+          case 'W':
             line = this.currentLine.substring(this.colNum)
             if (line.length <= 1) {
               if (this.lineNum < this.lineCount - 1) {
@@ -271,25 +329,38 @@ It is a long established fact that a reader will be distracted by the readable c
                 this.colNum = line.match(/^\s*/)[0].length
               }
             } else {
-              match = line.match(/^[a-z0-9_]+\s*/i)
+              match = line.match(ev.key == 'w' ? /^([a-z0-9_]+|[^a-z0-9_]+)\s*/i : /^[^\s]+\s*/)
               if (match) {
                 this.colNum = this.colNum + match[0].length
-              } else {
-                match = line.match(/^[^\s]+/)
-                if (match) {
-                  this.colNum = this.colNum + match[0].length
-                } else {
-                  match = line.match(/^\s*/)
-                  this.colNum = this.colNum + match[0].length
-                }
               }
             }
+            break
+          case 'b':
+          case 'B':
+            line = this.currentLine.substring(0, this.colNum)
+            if (line.length <= 1) {
+              if (this.lineNum > 0) {
+                this.lineNum--
+                this.colNum = this.currentLineLength - 1
+              }
+            } else {
+              match = line.match(ev.key == 'b' ? /([a-z0-9_]+|[^a-z0-9_]+)\s*$/i : /[^\s]+\s*$/)
+              if (match) {
+                this.colNum = this.colNum - match[0].length
+              }
+            }
+            break
+          case 'x':
+            this.data.remove(this.dataIndex, this.dataIndex + 1)
+            this.lineLengths[this.lineNum]--
+            this.fixColNum()
+            this.redraw()
             break
           case ':':
             this.commandMode()
             break
         }
-        this.message(this.dataIndex.toString() + '    ')
+        //this.message(this.dataIndex.toString() + '    ')
         break
       case 1: // insert mode
         switch (ev.key) {
@@ -303,6 +374,13 @@ It is a long established fact that a reader will be distracted by the readable c
           case 'Escape':
             this.normalMode()
             this.fixColNum()
+            break
+          case 'Enter':
+            this.data.insert(this.dataIndex, "\n")
+            this.calculateLineLengths()
+            this.colNum = 0
+            this.lineNum++
+            this.redraw()
             break
           default:
             this.data.insert(this.dataIndex, key)

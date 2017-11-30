@@ -1,3 +1,5 @@
+import { expandPath } from './shell/utils.js'
+
 class Program {
   constructor(args, session, stdin, stdout, stderr) {
     this.args = args
@@ -6,6 +8,10 @@ class Program {
     this.stdin = stdin
     this.stdout = stdout
     this.stderr = stderr
+  }
+
+  absolutePath(path) {
+    return expandPath(this.session.cwd, path)
   }
 }
 
