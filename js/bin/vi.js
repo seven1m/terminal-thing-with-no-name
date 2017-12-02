@@ -22,6 +22,7 @@ class Vi extends Program {
     this.lineNum = 0
     this.colNum = 0
     this.firstCharInWindow = 0
+    this.normalCommand = ''
   }
 
   get width() {
@@ -346,6 +347,48 @@ class Vi extends Program {
             this.redraw()
             this.move()
             break
+          case 'C':
+            this.data.remove(this.dataIndex, this.dataIndex + this.currentLineLength - this.colNum)
+            this.calculateLineLengths()
+            this.insertMode()
+            this.redraw()
+            break
+          case 'c':
+            if (this.normalCommand === '') {
+              this.normalCommand = 'c'
+            } else if (this.normalCommand === 'c') {
+              this.normalCommand = ''
+              match = this.currentLine.match(/^\s*/)
+              this.data.remove(this.dataIndex - this.colNum + match[0].length, this.dataIndex - this.colNum + this.currentLineLength)
+              this.calculateLineLengths()
+              this.insertMode()
+              this.colNum = match[0].length
+              this.move()
+              this.redraw()
+            } else {
+              this.normalCommand = ''
+            }
+            break
+          case 'D':
+            this.data.remove(this.dataIndex, this.dataIndex + this.currentLineLength - this.colNum)
+            this.calculateLineLengths()
+            this.fixColNum()
+            this.redraw()
+            break
+          case 'd':
+            if (this.normalCommand === '') {
+              this.normalCommand = 'd'
+            } else if (this.normalCommand === 'd') {
+              this.normalCommand = ''
+              this.data.remove(this.dataIndex - this.colNum, this.dataIndex - this.colNum + this.currentLineLength + 1)
+              this.calculateLineLengths()
+              this.fixColNum()
+              this.move()
+              this.redraw()
+            } else {
+              this.normalCommand = ''
+            }
+            break
           case 'w':
           case 'W':
             line = this.currentLine.substring(this.colNum)
@@ -384,6 +427,9 @@ class Vi extends Program {
             break
           case ':':
             this.commandMode()
+            break
+          case 'Escape':
+            this.normalCommand = ''
             break
         }
         //this.message(this.dataIndex.toString() + '    ')
