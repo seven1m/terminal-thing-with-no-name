@@ -16,9 +16,8 @@ class Vi extends Program {
     super(...args)
     this.mode = 0
     this.path = this.args[0]
-    const dataString = this.path ? this.session.fs.readFileSync(this.path).toString() : ''
-    this.data = new Rope(dataString)
-    this.calculateLineLengths()
+    this.data = new Rope('')
+    this.lineLengths = [0]
     this.topLineInWindow = 0
     this.lineNum = 0
     this.colNum = 0
@@ -86,6 +85,25 @@ class Vi extends Program {
     this._colNum = n
   }
 
+  loadFile() {
+    if (this.path) {
+      const fullPath = this.absolutePath(this.path)
+      this.session.fs.stat(fullPath, (err, stat) => {
+        if (err) {
+          this.message(`Could not open path: ${fullPath}`)
+        } else if (stat.isFile()) {
+          this.session.fs.readFile(fullPath, (err, data) => {
+            this.data = new Rope(data.toString())
+            this.calculateLineLengths()
+            this.redraw()
+          })
+        } else {
+          this.message(`Could not open path: ${fullPath}`)
+        }
+      })
+    }
+  }
+
   fixColNum() {
     this.colNum = this.colNum // force fix
   }
@@ -139,17 +157,21 @@ class Vi extends Program {
   }
 
   main(status) {
-    //const path = this.args[0]
     this.redraw()
+    this.loadFile()
     this.normalMode()
     this.stdin.bind(this.handleKey.bind(this))
-    this.exit = status
+    this.statusCallback = status
   }
 
-  normalMode(clearStatus = true) {
+  exit(status) {
+    this.term.clear()
+    this.statusCallback(status)
+  }
+
+  normalMode() {
     this.mode = 0
     this.colNum = Math.min(this.colNum, this.currentLineLength - 1)
-    if (clearStatus) this.clearStatus()
     this.move()
   }
 
@@ -180,8 +202,12 @@ class Vi extends Program {
   }
 
   message(msg) {
+    console.log(msg)
     this.jump(1, this.height)
     this.stdout.write(msg)
+    for (let i = 0; i < this.width - msg.length; i++) {
+      this.stdout.write(' ')
+    }
     this.move()
   }
 
@@ -208,7 +234,7 @@ class Vi extends Program {
       case 'q':
         this.stdout.writeln('')
         this.exit(0)
-        break
+        return
       case 'w':
         this.saveFile(args[0])
         break
@@ -219,11 +245,11 @@ class Vi extends Program {
             this.exit(0)
           }
         })
-        break
+        return
       default:
         this.message(`unknown command: ${command}`)
     }
-    this.normalMode(false)
+    this.normalMode()
   }
 
   handleKey(key, ev) {
@@ -372,6 +398,7 @@ class Vi extends Program {
             this.redraw()
             break
           case 'Escape':
+            this.message('')
             this.normalMode()
             this.fixColNum()
             break
