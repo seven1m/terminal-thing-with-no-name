@@ -2,6 +2,8 @@ import * as Builtins from './builtins.js'
 import { expandPath } from './utils.js'
 import Program from '../program.js'
 
+window.Program = Program // needed for some reason because webpack?
+
 class Resolver {
   constructor(command, session) {
     this.name = command[0]
