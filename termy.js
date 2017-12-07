@@ -1,9 +1,9 @@
 import Shell from './js/shell.js'
-import { MFS, FS } from './js/fs.js'
+import { fsWrapper, FS } from './js/fs.js'
 
 class Session {
   constructor() {
-    this.MFS = MFS
+    this.fsWrapper = fsWrapper
     this.term = new Terminal()
     this.env = {
       PWD: '/'

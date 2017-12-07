@@ -1,4 +1,4 @@
-export let MFS
+export let fsWrapper = {}
 
 BrowserFS.FileSystem.XmlHttpRequest.Create({
   index: 'js/bin/index.json'
@@ -8,7 +8,7 @@ BrowserFS.FileSystem.XmlHttpRequest.Create({
       '/': root,
       '/bin': bin
     }, (e, mfs) => {
-      MFS = mfs
+      fsWrapper.MFS = mfs
       BrowserFS.initialize(mfs)
     })
   })
