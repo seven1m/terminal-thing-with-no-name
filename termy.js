@@ -1,6 +1,8 @@
 import Shell from './js/shell.js'
 import { fsWrapper, FS } from './js/fs.js'
 
+Terminal.applyAddon(fit)
+
 class Session {
   constructor() {
     this.fsWrapper = fsWrapper
